@@ -35,7 +35,7 @@ Ever wondered what the difference between an s3:// URI and an s3n:// URI is?
 
 Essentially up until December, 2010 S3 had a 5GB object size limit.  So, if you used the default S3 HDFS implementation (by specifying an s3n:// URI) you couldn't read/write files greater than 5GB.  That said, when you did read or write a file with HDFS there was a 1 to 1 correspondance with the object that got stored in S3.  
 
-To process files larger than 5GB you had to use s3:// URIs in HDFS which actually chunked the file into multiple pieces behind the scenes before storing each piece as a separate object in S3.  So when accessing something via HDFS with an s3://bubket/object URI you might actually be downloading multiple "chunks" from S3.  [This page][http://wiki.apache.org/hadoop/AmazonS3] has some more info.
+To process files larger than 5GB you had to use s3:// URIs in HDFS which actually chunked the file into multiple pieces behind the scenes before storing each piece as a separate object in S3.  So when accessing something via HDFS with an s3://bubket/object URI you might actually be downloading multiple "chunks" from S3.  [This page](http://wiki.apache.org/hadoop/AmazonS3) has some more info.
 
 Nowadays the S3 limit is 5*TB*, so there isn't really a need to use s3:// URIs in HDFS anymore and indeed, in EMR, s3:// and s3n:// are both aliased to the same implementation (s3n).
 
