@@ -83,6 +83,7 @@ Hadoop and LZO compression
 The log files we process in our analytics platform are compressed using LZO compression.  Luckily EMR can transparently decrompress these files, so no extra configuration is needed.  Our local Hadoop install, however, cannot.  Luckily Twitter has some open source code we can use [on GitHub][twitter-lzo].
 
 Getting this to work requires a few steps:
+
 - Compiling the native C code for LZO
 - Compiling the java wrapper used by Hadoop
 - Setting up the relevant classpath/library paths so Hadoop can find them
