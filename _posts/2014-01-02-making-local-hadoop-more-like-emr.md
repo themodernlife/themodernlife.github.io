@@ -5,13 +5,13 @@ date:   2014-01-02 11:21:13
 categories: emr hadoop
 ---
 
-At [MediaMath][mediamath] we're big users of Elastic MapReduce.  EMR's incredible flexibilty makes it a great fit for our analytics jobs.
+At [MediaMath][mediamath] we're big users of Elastic MapReduce.  EMR's incredible flexibility makes it a great fit for our analytics jobs.
 
-An extermely important best practice for any analytics project is to ensure your local dev and test environments match your production environment as much as possible.  This eliminates the nasty surprise of launching a job that takes hours only to disocver that it fails late into the run due to some unmet dependency or config mistake.  Failing to invest time in the dev/test phase is a surefire way to blow big $$.
+An extremely important best practice for any analytics project is to ensure your local dev and test environments match your production environment as much as possible.  This eliminates the nasty surprise of launching a job that takes hours only to discover that it fails late into the run due to some unmet dependency or config mistake.  Failing to invest time in the dev/test phase is a surefire way to blow big $$.
 
-Lately I've been investigating some configuration settings you can make to your local Hadoop to bring it inline with what you'll find when you run a job on an EMR cluster.  This is especially important to us since we use S3 as a sort of centralized filesystem and EMR is designed to work wonderfully with S3.  Specificaly:
+Lately I've been investigating some configuration settings you can make to your local Hadoop to bring it inline with what you'll find when you run a job on an EMR cluster.  This is especially important to us since we use S3 as a sort of centralized filesystem and EMR is designed to work wonderfully with S3.  Specifically:
 
-- Using s3:// URIs everwhere instead of s3n:// URIs
+- Using s3:// URIs everywhere instead of s3n:// URIs
 - Embedding AWS access keys
 - Supporting transparent LZO compression
 
@@ -33,9 +33,9 @@ s3:// vs s3n:// URIs in HDFS
 
 Ever wondered what the difference between an s3:// URI and an s3n:// URI is?  
 
-Essentially up until December, 2010 S3 had a 5GB object size limit.  So, if you used the default S3 HDFS implementation (by specifying an s3n:// URI) you couldn't read/write files greater than 5GB.  That said, when you did read or write a file with HDFS there was a 1 to 1 correspondance with the object that got stored in S3.  
+Essentially up until December, 2010 S3 had a 5GB object size limit.  So, if you used the default S3 HDFS implementation (by specifying an s3n:// URI) you couldn't read/write files greater than 5GB.  That said, when you did read or write a file with HDFS there was a 1 to 1 correspondence with the object that got stored in S3.  
 
-To process files larger than 5GB you had to use s3:// URIs in HDFS which actually chunked the file into multiple pieces behind the scenes before storing each piece as a separate object in S3.  So when accessing something via HDFS with an s3://bubket/object URI you might actually be downloading multiple "chunks" from S3.  [This page](http://wiki.apache.org/hadoop/AmazonS3) has some more info.
+To process files larger than 5GB you had to use s3:// URIs in HDFS which actually chunked the file into multiple pieces behind the scenes before storing each piece as a separate object in S3.  So when accessing something via HDFS with an s3://bucket/object URI you might actually be downloading multiple "chunks" from S3.  [This page](http://wiki.apache.org/hadoop/AmazonS3) has some more info.
 
 Nowadays the S3 limit is 5*TB*, so there isn't really a need to use s3:// URIs in HDFS anymore and indeed, in EMR, s3:// and s3n:// are both aliased to the same implementation (s3n).
 
@@ -55,7 +55,7 @@ Embedding AWS Access Keys
 
 If you want to run Hadoop jobs on your laptop but use data stored in S3, you'll need to ensure your credentials are stored in `mapred-site.xml`.  If you installed Hadoop via Homebrew, just edit `$(brew --prefix hadoop)/libexec/conf/mapred-site.xml`.  
 
-NOTE: I set this up for both the s3n and s3 HDFS filesystem implementations, but since I only ever use the NativeS3FileSystem via s3:// URIs, the *s3* properties don't really matter (becase the S3FileSystem will never be used).
+NOTE: I set this up for both the s3n and s3 HDFS filesystem implementations, but since I only ever use the NativeS3FileSystem via s3:// URIs, the *s3* properties don't really matter (because the S3FileSystem will never be used).
 
 ```xml
 <property>
@@ -80,7 +80,7 @@ NOTE: I set this up for both the s3n and s3 HDFS filesystem implementations, but
 Hadoop and LZO compression
 --------------------------
 
-The log files we process in our analytics platform are compressed using LZO compression.  Luckily EMR can transparently decrompress these files, so no extra configuration is needed.  Our local Hadoop install, however, cannot.  Luckily Twitter has some open source code we can use [on GitHub][twitter-lzo].
+The log files we process in our analytics platform are compressed using LZO compression.  Luckily EMR can transparently decompress these files, so no extra configuration is needed.  Our local Hadoop install, however, cannot.  Luckily Twitter has some open source code we can use [on GitHub][twitter-lzo].
 
 Getting this to work requires a few steps:
 
@@ -98,7 +98,7 @@ $> brew install hadoop-lzo
 
 Basically this will use Homebrew to install lzo and maven so you can compile the Twitter Hadoop/LZO code for steps 1 and 2.  The compiled code will be installed into `$(brew --prefix hadoop-lzo)/libexec`.
 
-Now we can configure Hadoop to use it.  First of all, the defualt `hadoop` executable actually *resets JAVA_LIBRARY_PATH* which means we can't get the native libraries onto the right path.  So, we have to edit `$(brew --prefix hadoop)/libexec/bin/hadoop` and comment out line #353
+Now we can configure Hadoop to use it.  First of all, the default `hadoop` executable actually *resets JAVA_LIBRARY_PATH* which means we can't get the native libraries onto the right path.  So, we have to edit `$(brew --prefix hadoop)/libexec/bin/hadoop` and comment out line #353
 
 ```bash
 # setup 'java.library.path' for native-hadoop code if necessary
@@ -136,7 +136,7 @@ For more info on installing Hadoop LZO via Homebrew, checkout [the GitHub page f
 Investigating more settings
 ---------------------------
 
-If you enable debuging when you spin up your EMR cluster, you can actually inspect the jobconf by downloading the file from S3.  This is a great way to see what other settings you may need to tweak to ensure that your jobs can be tested on your laptop before you send them off to EMR.
+If you enable debugging when you spin up your EMR cluster, you can actually inspect the jobconf by downloading the file from S3.  This is a great way to see what other settings you may need to tweak to ensure that your jobs can be tested on your laptop before you send them off to EMR.
 
 
 
