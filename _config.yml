@@ -1,3 +1,15 @@
-name: The Modern Life
-markdown: redcarpet
-pygments: true
+# Site settings
+title: ":: the modern life ::"
+email: ian@themodernlife.net
+description: "description goes here"
+baseurl: ""
+url: "http://themodernlife.net"
+twitter_username: themodernlife
+github_username:  themodernlife
+
+# Build settings
+markdown: kramdown
+permalink: pretty
+
+kramdown:
+  input: GFM
