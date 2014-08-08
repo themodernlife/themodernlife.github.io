@@ -74,7 +74,7 @@ Play DynamoDB
 
 MediaMath uses a variety of technologies in our analytics stack, including [AWS DynamoDB](http://aws.amazon.com/dynamodb/).  DynamoDB is a distributed, fault-tolerant key value store as a service that makes it easy to store/query massive datasets.  We use it power a few internal troubleshooting tools which have front-end/API layers written in Play.
 
-One downside of using the [AWS Java SDK](http://aws.amazon.com/sdk-for-java/) from Scala is that it feels quite verbose.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for the DynamoDB's `Item` instaed of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
+One downside of using the [AWS Java SDK](http://aws.amazon.com/sdk-for-java/) from Scala is that it feels quite verbose.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for DynamoDB's `Item` instead of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
 
 Working with Play DynamoDB is very similar to working with the Play JSON API.
 
