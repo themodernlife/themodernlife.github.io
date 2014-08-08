@@ -127,7 +127,9 @@ As you can see, the code is almost the same:
 Let's take this further!
 -------------------------
 
-There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen here https://github.com/playframework/playframework/pull/1904.  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way. Development work on the new validation API happens in GitHub @ https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms, and MediaMath has submitted patches to extend it to work with CSV/TSV delimited files like so:
+There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen [in this pull request](https://github.com/playframework/playframework/pull/1904).  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way.
+
+Development work on the new validation API happens in GitHub at https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms, and MediaMath has submitted patches to extend it to work with CSV/TSV delimited files like so:
 
 ```Scala
 case class Contact(name: String, email: String, birthday: Option[LocalDate])
