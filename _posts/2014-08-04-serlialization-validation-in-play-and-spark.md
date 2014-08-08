@@ -7,15 +7,13 @@ categories: scala validation play spark
 
 Do you think of yourself as a web developer?  Or maybe you're more into building backend, low-latency systems.  Map/reduce much?  As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
 
-Recently I had the opportunity to revisit some work we had done on a front-end API using the Play web framework and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records.
+Recently I had the opportunity to revisit some work we had done on a front-end API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records.
 
 
 Whether your data is big or small, garbage in is garbage out
 -------------------------------------------------------------
 
-MediaMath processes TBs of online user behavior and advertising data every day. We strive to create systmes that ensure each integrity but it's inevitable that with these many machines (100s in 7 datacenters), legacy systems  data some bad records slip in from time to time, especially if the data in question is coming from clients or partners.
-
-Often this happens when you try to process user-submitted data such as User-agnet strings or metadata entered via autoamted systesm.  Unfortunately this is the real world and datasets often contain unformatted columns or strings, such as user-agent, that are all too easy to bust up a naive format like TSV.  It's often the case that changing to a more robust data transfer format like Avro or Protocol Buffers is not feasible so you're stuck with TSV.
+MediaMath processes TBs of online user behavior and advertising data every day. It's inevitable that with hundreds of machines spread across multiple datacenters, legacy systems and partner provided APIs we receive bad data or invalid records from time to time. Systems built around file formats like CSV or TSV are especially susceptible to encoding errors that can cause headaches for downstream processing systems.
 
 So what are your options?
 
@@ -29,7 +27,9 @@ The problem is that the function above can fail.  Think about the scenario of pr
 Play's JSON API
 -----------------------------
 
-The Play framework has a very robust API for doing just these sorts of validations against user submitted HTML forms or JSON documents.  Let's take a look at an example JSON API for creating new online advertising campaigns.  First we define our domain model, taking advantage of Scala's strong typing and features such as `Option` to safely process values that may be missing.
+The Play framework has a very robust API for doing just these sorts of validations against user submitted HTML forms or JSON documents, in essence providing a function equivalent to something like `validate[D]: (input: Json) => JsResult[D]` where `JsResult` is a more robust version of `Option` that can remember failures for each path or index of the JSON document.  
+
+Let's take a look at an example service for creating new online advertising campaigns.  First we define our domain model, taking advantage of Scala's strong typing and features such as `Option` to safely process values that may be missing.
 
 ```scala
 case class Campaign(name: String, startDate: DateTime, endDate: DateTime, budget: Double, meritPixelId: Option[Long])
@@ -74,7 +74,7 @@ Play DynamoDB
 
 MediaMath uses a variety of technologies in our analytics stack, including [AWS DynamoDB](http://aws.amazon.com/dynamodb/).  DynamoDB is a distributed, fault-tolerant key value store as a service that makes it easy to store/query massive datasets.  We use it power a few internal troubleshooting tools which have front-end/API layers written in Play.
 
-One downside of using the AWS Java SDK from Scala is that it feels quite verbose.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for the DynamoDB's `Item` instaed of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
+One downside of using the [AWS Java SDK](http://aws.amazon.com/sdk-for-java/) from Scala is that it feels quite verbose.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for the DynamoDB's `Item` instaed of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
 
 Working with Play DynamoDB is very similar to working with the Play JSON API.
 
