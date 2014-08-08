@@ -35,7 +35,7 @@ Let's take a look at an example service for creating new online advertising camp
 case class Campaign(name: String, startDate: DateTime, endDate: DateTime, budget: Double, meritPixelId: Option[Long])
 ```
 
-Next we create a sort of recipe or formula for mapping a JSON document into our domain model called a `Reads`.  Note that the parsing could fail for any number of reasons such as users uploading a document with missing fields, or fields having the wrong data type.  We use combinator syntax to `and` together each field's `Reads` and use apply the resulting objects as the arguments to the `Campaign` constructor.
+Next we create a sort of recipe or formula for mapping a JSON document into our domain model called a `Reads`.  Note that the parsing could fail for any number of reasons such as users uploading a document with missing fields, or fields having the wrong data type.  We use combinator syntax to `and` together each field's `Reads` and apply the resulting objects as the arguments to the `Campaign` constructor.
 
 ```scala
 implicit val reads = (
