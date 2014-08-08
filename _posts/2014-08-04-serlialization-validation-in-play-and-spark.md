@@ -127,9 +127,9 @@ As you can see, the code is almost the same:
 Let's take this further!
 -------------------------
 
-There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen [in this pull request](https://github.com/playframework/playframework/pull/1904).  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way.
+There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen [in this pull request](https://github.com/playframework/playframework/pull/1904).  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way.  
 
-Development work on the new validation API happens in GitHub at https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms, and MediaMath has submitted patches to extend it to work with CSV/TSV delimited files like so:
+Development work on the new validation API happens in GitHub at https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms via a slightly refined API in which instead of creating `Reads` you create and combine `Rules`.  MediaMath has submitted patches to extend it to work with CSV/TSV delimited files like so:
 
 ```Scala
 case class Contact(name: String, email: String, birthday: Option[LocalDate])
@@ -186,7 +186,7 @@ case class S3AccessLog(
 )
 ```
 
-The S3 access logs need a little processing before we can simply treat them as a "space-delimited" file.  But once we've done that, we just need to create a `Rule` which maps from an `Array[String]` (aliased as `Delimited`) to our `S3AccessLog` domain object and we're good!
+The S3 access logs need a little processing before we can simply treat them as a "space-delimited" file.  For example, empty values are represented by the string `-`. Fortunately we can account for all that by chaining multiple `Rule`s together to create a new `Rule` which maps from an `Array[String]` (aliased as `Delimited`) to our `S3AccessLog` domain object.
 
 ```scala
 class S3AccessLogScheme(csvParser: CSVParser = new CSVParser(' ')) extends Scheme[S3AccessLog] {
@@ -245,7 +245,7 @@ This post just scratched the surface of what's possible with the strong, combina
 
 If you'd like more info here are some links:
 
-- [An article announcing the new Play validation API](http://jto.github.io/articles/play_new_validation_api
+- [An article announcing the new Play validation API](http://jto.github.io/articles/play_new_validation_api)
 - [Play DynamoDB](https://github.com/MediaMath/play-dynamodb)
 - [The new Play validation API project](https://github.com/jto/validation)
 - [Our PR to add Delimited CSV/TSV support](https://github.com/jto/validation/pull/14)
