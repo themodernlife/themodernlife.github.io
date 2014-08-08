@@ -5,76 +5,80 @@ date:   2014-08-07 11:50:13
 categories: scala validation play spark
 ---
 
+Do you think of yourself as a web developer?  Or maybe you're more into building backend, low-latency systems.  Map/reduce much?  As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
+
+Recently I had the opportunity to revisit some work we had done on a front-end API using the Play web framework and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records.
 
 
-Do you think of yourself as a web developer?  Or maybe you're more into building backend, distributed systems.  MapReduce much?  As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
-
-Recently I had the opportunity to revisit some work we had done on a front-end API using the Play web framework and apply it to solving the problem of creating type safe data pipelines that are resilliant in the face of invalid records.
-
-
-Whether your data is big or small, garbage in is garbage out!
+Whether your data is big or small, garbage in is garbage out
 -------------------------------------------------------------
 
-MediaMath processes TBs of data every day streaming from our data centers distributed across XXX global locations.  We strive to create strong guarantees for data integrity but it's invetiable that with these many machines and this much data some bad records slip in from time to time.
+MediaMath processes TBs of online user behavior and advertising data every day. We strive to create systmes that ensure each integrity but it's inevitable that with these many machines (100s in 7 datacenters), legacy systems  data some bad records slip in from time to time, especially if the data in question is coming from clients or partners.
 
 Often this happens when you try to process user-submitted data such as User-agnet strings or metadata entered via autoamted systesm.  Unfortunately this is the real world and datasets often contain unformatted columns or strings, such as user-agent, that are all too easy to bust up a naive format like TSV.  It's often the case that changing to a more robust data transfer format like Avro or Protocol Buffers is not feasible so you're stuck with TSV.
 
-What are your options?
+So what are your options?
 
 Functional thinking
 -------------------
 
-If you consider any sort of Map/Reduce paradigm (realtime or batch) you often need to translate some kind of wire format `T` into an object of type `D` with a set of fields in order to decide how to partition, join, filter or aggregate the records as they stream through your processor.  In mathematical terms, you need a function `translate: (input: T) => D` where `input` could be a parsed JSON object, a snippet of XML, an array of bytes or an array of stings in the case of tab or comma delimited files.
+If you consider any sort of Map/Reduce paradigm (realtime or batch) you often need to translate some kind of wire format `T` into an object of type `D` with a set of fields in order to decide how to partition, join, filter or aggregate the records as they stream through your processors.  In mathematical terms, you need a function `translate: (input: T) => D` where `input` could be a parsed JSON object, a snippet of XML, an array of bytes or an array of stings in the case of tab or comma delimited files.
 
 The problem is that the function above can fail.  Think about the scenario of processing a CSV file line by line.  Each line has columns of different types (strings, integers, floating point numbers).    What if someone puts "#@$?" where you were expecting a number?  Or leaves a required field blank?  In other words, our function is only defined *for some* values of `T` (it's a partial function).  We can model this in Scala a couple of ways, most notably we could throw an exception or return an `Option[D]`.
 
 Play's JSON API
 -----------------------------
 
-The Play framework has a very robust API for doing just these sorts of validations against user submitted HTML forms or JSON documents.  Let's take a look at some examples.
-
-First we create our domain model, taking advantage of Scala's strong typing and features such as `Option` to safely process values that may be missing.
+The Play framework has a very robust API for doing just these sorts of validations against user submitted HTML forms or JSON documents.  Let's take a look at an example JSON API for creating new online advertising campaigns.  First we define our domain model, taking advantage of Scala's strong typing and features such as `Option` to safely process values that may be missing.
 
 ```scala
-case class Impression(...)
+case class Campaign(name: String, startDate: DateTime, endDate: DateTime, budget: Double, meritPixelId: Option[Long])
 ```
 
-Next we create a sort of recipe or formula for mapping a JSON document into our domain object.  Note that this step could fail for any number of reasons such as missing fields, or fields having the wrong type.
-
-The type signature in this case is `T => Success[E, A]`
-
-
-The real power comes from being able to combine pure functions to process these fields in new, interesting ways in a fully type safe manner.
+Next we create a sort of recipe or formula for mapping a JSON document into our domain model called a `Reads`.  Note that the parsing could fail for any number of reasons such as users uploading a document with missing fields, or fields having the wrong data type.  We use combinator syntax to `and` together each field's `Reads` and use apply the resulting objects as the arguments to the `Campaign` constructor.
 
 ```scala
-Example using map, flatmap, composition, etc...
+implicit val reads = (
+  (__ \ "name").read[String] and
+  (__ \ "start_date").read[DateTime] and
+  (__ \ "end_date").read[DateTime] and
+  (__ \ "budget").read[Double] and
+  (__ \ "merit_pixel_id").read[Option[Long]]
+)(Campaign)
 ```
 
-This approach to data validation is very powerful, and we've found multiple ways of using it at MediaMath.
+Let's use our new validator to parse some JSON:
+
+```scala
+val json = Json.parse("""
+{
+  "name" : "Summer 2014 Blockblusters",
+  "start_date" : "2014-08-01",
+  "end_date" : "2014-08-09",
+  "budget" : 10000.00,
+  "merit_pixel_id" : 100213
+}
+""")
+
+json.validate[Campaign] match {
+  case JsSuccess(campaign, _) ⇒ println(s"Created campaign: ${campaign}")
+  case JsError(errors)        ⇒ println(s"Invalid JSON document: ${errors}")
+}
+// prints Campaign(Summer 2014 Blockblusters,2014-08-01T00:00:00.000-04:00,2014-08-09T00:00:00.000-04:00,10000.0,Some(100213))
+```
+
+This approach to data validation is fully type safe and very powerful. We've found multiple ways of using it at MediaMath.
 
 Play DynamoDB
 -------------
 
-MediaMath uses a variety of technologies in our analytics stack, including DynamoDB.  DynamoDB is a NoSQL service that makes it easy to prototype and scale data services.  It powers a few internal troubleshooting tools which have front-end/API layers written in Play.
+MediaMath uses a variety of technologies in our analytics stack, including [AWS DynamoDB](http://aws.amazon.com/dynamodb/).  DynamoDB is a distributed, fault-tolerant key value store as a service that makes it easy to store/query massive datasets.  We use it power a few internal troubleshooting tools which have front-end/API layers written in Play.
 
-We really liked the JSON API and wanted to see if it could be extended.  The Java API is quite verbose, but essentially API calls return an `Item` which is a sort of `HashMap`.  What if we could have functions from `Item => Success[E, A]` and get data binding like Play for free?
+One downside of using the AWS Java SDK from Scala is that it feels quite verbose.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for the DynamoDB's `Item` instaed of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
 
-
-We build a system called Play DynamoDB to do this.
-
-- Easily convert data stored in DynamoDB into case classes
-- Supports primitive types, iterables, byte arrays and Joda-Time classes
-
-
-First, make sure you understand the [JSON combinators API](http://www.playframework.com/documentation/2.2.x/ScalaJsonCombinators).
-Then you just need to create an implicit reads for your case class and call 'validate'.  You will get back either
-a `DdbSuccess` or a `DdbError` depending on whether or not the validation/parsing succeeded.
+Working with Play DynamoDB is very similar to working with the Play JSON API.
 
 ```scala
-import play.api.libs.functional.syntax._
-import play.api.libs.dynamodb._
-import org.joda.time.DateTime
-
 /**
  * Example item as returned from DynamoDB API
  */
@@ -113,31 +117,46 @@ implicit val userReads = (
 val user = Item.parse(item).validate[User]
 ```
 
+As you can see, the code is almost the same:
+- Create your domain object of type `D`
+- Create your blueprint for parsing it from some type `T`, in this case a DynamoDB `Item`
+- Use Play's functional/combinator constructs to map from `T => DdbResult[D]`
+
+
 Let's take this further!
 -------------------------
 
-Play's JSON API has been split out into a separate project with a lot of promise.  Currently dev work is happening at jto/validation.  Can we extend it even more?
-
-Recall our mathematical definiton of valdation... it's sort of a serialziation frameowrk.  For example:
-
-How would we look at serialization mathematically?  fn: Array[Bytes] => Option[T]
-What about JSON?  JsonObject => Option[T]
-What about CSV file?  Array[Byte] => Option[T]
-What about a result set?
-
-In the new Validation API you get a slightly different syntax, but it's still cool.
+There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen here https://github.com/playframework/playframework/pull/1904.  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way. Development work on the new validation API happens in GitHub @ https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms, and MediaMath has submitted patches to extend it to work with CSV/TSV delimited files like so:
 
 ```Scala
-Example!
+case class Contact(name: String, email: String, birthday: Option[LocalDate])
+
+val contactReads = From[Delimited] { __ ⇒ (
+  (__ \ 0).read[String] and
+  (__ \ 1).read(email) and
+  (__ \ 2).read(optionR[LocalDate](Rules.equalTo("N/A")))
+)(Contact)}
+
+val csv1 = "Ian Hummel,ian@example.com,1981-07-24"
+val csv2 = "Jane Doe,jane@example.com,N/A"
+
+contactReads.validate(csv1.split(",")) mustEqual Success(Contact("Ian Hummel", "ian@example.com", Some(new LocalDate(1981, 7, 24))))
+contactReads.validate(csv2.split(",")) mustEqual Success(Contact("Jane Doe", "jane@example.com", None))
 ```
+
+In the future we'd like to merge our DynamoDB library into it as well, and are actively working on a patch for reading from [JDBC ResultSets](http://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html).  We're excited about the possibilities.
 
 
 Processing S3 Access Logs in Spark
 -----------------------------------
 
-We are heavy users of S3 at MediaMath.  We've enabled S3 Access Logging on many of the buckets we use for production datasets.  An S3 access log looks like this:
+Let's see how this general validation library could be used in a big data pipeline.  We are heavy users of S3 at MediaMath and have enabled [S3 Access Logging](http://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html) on many of the buckets we use for production datasets.  An S3 Access Log looks like this:
 
-What if we want to do some data analysis on this, using Spark for instance?
+```
+2a520ba2eac7794c5663c17db741f376756214b1bbb423214f979d1ba95bac73 mm-prod-raw-logs-bidder [16/Jul/2014:15:47:42 +0000] 74.121.142.208 arn:aws:iam::000000000000:user/test@mediamath.com XXXXXXXXXXXXXXXX REST.PUT.OBJECT 2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo "PUT /2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo HTTP/1.1" 200 - - 18091170 931 66 "-" "aws-sdk-java/1.7.5 Linux/3.2.0-4-amd64 OpenJDK_64-Bit_Server_VM/20.0-b12/1.6.0_27 com.amazonaws.services.s3.transfer.TransferManager/1.7.5" -
+```
+
+What if we want to do some data analysis on these access logs, using Spark for instance?
 
 First, let's create our domain object
 
@@ -163,7 +182,8 @@ case class S3AccessLog(
   versionId: String
 )
 ```
-The S3 access logs need a little processing before we can simply treat them as a "delimited" file.  But once we've done that, we just need to create a `Rule` which maps from an `Array[String]` (aliased as `Delimited`) to our `S3AccessLog` domain object and we're good!
+
+The S3 access logs need a little processing before we can simply treat them as a "space-delimited" file.  But once we've done that, we just need to create a `Rule` which maps from an `Array[String]` (aliased as `Delimited`) to our `S3AccessLog` domain object and we're good!
 
 ```scala
 class S3AccessLogScheme(csvParser: CSVParser = new CSVParser(' ')) extends Scheme[S3AccessLog] {
@@ -199,7 +219,7 @@ class S3AccessLogScheme(csvParser: CSVParser = new CSVParser(' ')) extends Schem
 }
 ```
 
-Let's process
+Let's process some data with Spark:
 
 ```scala
 def main(args: Array[String]) = {
@@ -207,25 +227,24 @@ def main(args: Array[String]) = {
 
   lazy val scheme = new S3AccessLogScheme()
 
-  sc.hadoopConfiguration.setClass("mapred.input.pathFilter.class", classOf[DateFilter], classOf[PathFilter])
-
   sc.textFile("s3://mm-prod-cloud-trail-logs/S3AccessLogs/mm-prod-raw-logs-bidder/2014-07-16-16-32-16-EC08CB17F0F10717")
-    .map(scheme.translate)
-    // At this point we have a stream of S3AccessLog objects
+    .map(scheme.translate) // Type of the stream at this point is Validation[Seq[ValidationError], S3AccessLog]
     .foreach(println)
 }
 ```
 
-That right there is a fully typed safe data pipeline that can be joined, grouped and aggregated with compile time type checks and is resilient to bad records.
+Now we have a data pipeline that can be joined, grouped and aggregated with compile time type checks, code completion for any field access and is resilient to bad records.
 
 More to come
 ------------
 
-This post just scratched the surface of what's possible with the strong, combinator-based approach to data translation and validation offered by Play.  I really hope the Validation project catches on and can stand on its own 2 feet (without Play).  As we've shown the applications to Big Data pipelines could really be a huge boon!
+This post just scratched the surface of what's possible with the strong, combinator-based approach to data translation and validation offered by Play.  I really hope the Validation project catches on and can stand on its own 2 feet (without Play).  As we've shown libraries like this could really help making type safe big data pipelines easy.
 
-If you'd like more info, please check out:
+If you'd like more info here are some links:
 
-- Play DynamoDB for more info on using DynamoDB from Play
-- The PR against Validation to add Delimited (CSV) support
+- [An article announcing the new Play validation API](http://jto.github.io/articles/play_new_validation_api
+- [Play DynamoDB](https://github.com/MediaMath/play-dynamodb)
+- [The new Play validation API project](https://github.com/jto/validation)
+- [Our PR to add Delimited CSV/TSV support](https://github.com/jto/validation/pull/14)
 
-Oh, and if you like working with Big Data on AWS?  Checkout MediaMath for more big data fun!
+Oh, and if you like working with Big Data and AWS?  Checkout the [MediaMath careers page](http://www.mediamath.com/about/careers/)!
