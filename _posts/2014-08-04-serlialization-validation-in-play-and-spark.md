@@ -121,7 +121,7 @@ As you can see, the code is almost the same:
 
 - Create your domain object of type `D`
 - Create your blueprint for parsing it from some type `T`, in this case a DynamoDB `Item`
-- Use Play's functional/combinator constructs to map from `T => DdbResult[D]`
+- Use Play's functional/combinator constructs to map from `Item => DdbResult[D]`
 
 
 Let's take this further!
