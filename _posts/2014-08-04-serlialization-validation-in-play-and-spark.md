@@ -118,6 +118,7 @@ val user = Item.parse(item).validate[User]
 ```
 
 As you can see, the code is almost the same:
+
 - Create your domain object of type `D`
 - Create your blueprint for parsing it from some type `T`, in this case a DynamoDB `Item`
 - Use Play's functional/combinator constructs to map from `T => DdbResult[D]`
