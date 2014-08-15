@@ -22,10 +22,12 @@ Functional thinking
 
 If you consider any sort of Map/Reduce paradigm (realtime or batch) you often need to translate some kind of wire format `T` into an object of type `D` with a set of fields in order to decide how to partition, join, filter or aggregate the records as they stream through your processors.  In mathematical terms, you need a function `translate: (input: T) => D` where `input` could be a parsed JSON object, a snippet of XML, an array of bytes or an array of stings in the case of tab or comma delimited files.
 
-The problem is that the function above can fail.  Think about the scenario of processing a CSV file line by line.  Each line has columns of different types (strings, integers, floating point numbers).    What if someone puts "#@$?" where you were expecting a number?  Or leaves a required field blank?  In other words, our function is only defined *for some* values of `T` (it's a partial function).  We can model this in Scala a couple of ways, most notably we could throw an exception or return an `Option[D]`.
+The problem is that the function above can fail.  Think about the scenario of processing a CSV file line by line.  Each line has columns of different types (strings, integers, floating point numbers).    What if someone puts "#@$?" where you were expecting a number?  Or leaves a required field blank?  In other words, our function is only defined *for some* values of `T` (it's a partial function).
 
-Play's JSON API
------------------------------
+At MediaMath we use Scala, so the natural choice is to model this by throwing an exception or returning an `Option[D]`.
+
+Validation with Play's combinator-based API
+-------------------------------------------
 
 The Play framework has a very robust API for doing just these sorts of validations against user submitted HTML forms or JSON documents, in essence providing a function equivalent to something like `validate[D]: (input: Json) => JsResult[D]` where `JsResult` is a more robust version of `Option` that can remember failures for each path or index of the JSON document.  
 
@@ -69,8 +71,8 @@ json.validate[Campaign] match {
 
 This approach to data validation is fully type safe and very powerful. We've found multiple ways of using it at MediaMath.
 
-Play DynamoDB
--------------
+Extending validation to work with AWS DynamoDB
+----------------------------------------------
 
 MediaMath uses a variety of technologies in our analytics stack, including [AWS DynamoDB](http://aws.amazon.com/dynamodb/).  DynamoDB is a distributed, fault-tolerant key value store as a service that makes it easy to store/query massive datasets.  We use it power a few internal troubleshooting tools which have front-end/API layers written in Play.
 
@@ -124,8 +126,8 @@ As you can see, the code is almost the same:
 - Use Play's functional/combinator constructs to map from `Item => DdbResult[D]`
 
 
-Let's take this further!
--------------------------
+Extending validation to process big data with Spark?
+----------------------------------------------------
 
 There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen [in this pull request](https://github.com/playframework/playframework/pull/1904).  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way.  
 
@@ -149,14 +151,10 @@ contactReads.validate(csv2.split(",")) mustEqual Success(Contact("Jane Doe", "ja
 
 In the future we'd like to merge our DynamoDB library into it as well, and are actively working on a patch for reading from [JDBC ResultSets](http://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html).  We're excited about the possibilities.
 
-
-Processing S3 Access Logs in Spark
------------------------------------
-
 Let's see how this general validation library could be used in a big data pipeline.  We are heavy users of S3 at MediaMath and have enabled [S3 Access Logging](http://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html) on many of the buckets we use for production datasets.  An S3 Access Log looks like this:
 
 ```
-2a520ba2eac7794c5663c17db741f376756214b1bbb423214f979d1ba95bac73 mm-prod-raw-logs-bidder [16/Jul/2014:15:47:42 +0000] 74.121.142.208 arn:aws:iam::000000000000:user/test@mediamath.com XXXXXXXXXXXXXXXX REST.PUT.OBJECT 2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo "PUT /2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo HTTP/1.1" 200 - - 18091170 931 66 "-" "aws-sdk-java/1.7.5 Linux/3.2.0-4-amd64 OpenJDK_64-Bit_Server_VM/20.0-b12/1.6.0_27 com.amazonaws.services.s3.transfer.TransferManager/1.7.5" -
+2a520ba2eac7794c5663c17db741f376756214b1bbb423214f979d1ba95bac73 bidder-data-bucket [16/Jul/2014:15:47:42 +0000] 74.121.142.208 arn:aws:iam::000000000000:user/test@mediamath.com XXXXXXXXXXXXXXXX REST.PUT.OBJECT 2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo "PUT /2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo HTTP/1.1" 200 - - 18091170 931 66 "-" "aws-sdk-java/1.7.5 Linux/3.2.0-4-amd64 OpenJDK_64-Bit_Server_VM/20.0-b12/1.6.0_27 com.amazonaws.services.s3.transfer.TransferManager/1.7.5" -
 ```
 
 What if we want to do some data analysis on these access logs, using Spark for instance?
@@ -248,6 +246,5 @@ If you'd like more info here are some links:
 - [An article announcing the new Play validation API](http://jto.github.io/articles/play_new_validation_api)
 - [Play DynamoDB](https://github.com/MediaMath/play-dynamodb)
 - [The new Play validation API project](https://github.com/jto/validation)
-- [Our PR to add Delimited CSV/TSV support](https://github.com/jto/validation/pull/14)
 
 Oh, and if you like working with Big Data and AWS?  Checkout the [MediaMath careers page](http://www.mediamath.com/about/careers/)!
