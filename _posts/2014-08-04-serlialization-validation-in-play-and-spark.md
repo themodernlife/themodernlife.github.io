@@ -7,7 +7,9 @@ categories: scala validation play spark
 
 Do you think of yourself as a web developer?  Or maybe you're more into building backend, low-latency systems.  Map/reduce much?  As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
 
-Recently I had the opportunity to revisit some work we had done on a front-end API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records.
+Recently I had the opportunity to revisit some work we had done to a web-tier API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records.
+
+The secret sauce?  [Play's combinator-based approach to data validation](https://www.playframework.com/documentation/2.3.x/ScalaJson).
 
 
 Whether your data is big or small, garbage in is garbage out
@@ -17,14 +19,16 @@ MediaMath processes TBs of online user behavior and advertising data every day. 
 
 So what are your options?
 
-Functional thinking
--------------------
+Quite often the first step for most data processing pipelines (be they single node scripts or massive Hadoop jobs) is translating some kind of encoded wire format `T` into a record of type `D` for partitioning, joining, filtering or aggregating.  In mathematical terms, you need a function `translate: (input: T) => D` where `input` could be a parsed JSON object, a snippet of XML, an array of bytes or an array of stings in the case of tab or comma delimited files.
 
-If you consider any sort of Map/Reduce paradigm (realtime or batch) you often need to translate some kind of wire format `T` into an object of type `D` with a set of fields in order to decide how to partition, join, filter or aggregate the records as they stream through your processors.  In mathematical terms, you need a function `translate: (input: T) => D` where `input` could be a parsed JSON object, a snippet of XML, an array of bytes or an array of stings in the case of tab or comma delimited files.
+But what if the translation fails?
 
-The problem is that the function above can fail.  Think about the scenario of processing a CSV file line by line.  Each line has columns of different types (strings, integers, floating point numbers).    What if someone puts "#@$?" where you were expecting a number?  Or leaves a required field blank?  In other words, our function is only defined *for some* values of `T` (it's a partial function).
+Think about the scenario of processing a CSV file line by line.  Each line has columns of different types (strings, integers, floating point numbers).    What if someone puts "#@$?" where you were expecting a number?  Or leaves a required field blank?  In other words, our function is only defined *for some* values of `T` (it's a partial function).  At MediaMath we use Scala, so the natural choice would be to model this by throwing an exception or returning an `Option[D]`.
 
-At MediaMath we use Scala, so the natural choice is to model this by throwing an exception or returning an `Option[D]`.
+That said, a richer validation API would really open up the possibility of sharing parsing logic between projects, easily swapping out the underlying wire format, using richer types like Joda Time's `DateTime` instead of `String`s or `Int`s and much more...
+
+That's where [Play](http://www.playframework.com/) comes in.
+
 
 Validation with Play's combinator-based API
 -------------------------------------------
@@ -76,7 +80,7 @@ Extending validation to work with AWS DynamoDB
 
 MediaMath uses a variety of technologies in our analytics stack, including [AWS DynamoDB](http://aws.amazon.com/dynamodb/).  DynamoDB is a distributed, fault-tolerant key value store as a service that makes it easy to store/query massive datasets.  We use it power a few internal troubleshooting tools which have front-end/API layers written in Play.
 
-One downside of using the [AWS Java SDK](http://aws.amazon.com/sdk-for-java/) from Scala is that it feels quite verbose.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for DynamoDB's `Item` instead of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
+That said, a downside of using the [AWS Java SDK](http://aws.amazon.com/sdk-for-java/) from Scala is that it feels quite verbose and unidiomatic.  We really liked the succinct JSON API from Play and wanted to see if it could be extended to create a data binding layer for DynamoDB's `Item` instead of JSON docs.  Turns out this was quite easy to do and the results are now open sourced as [Play DynamoDB](https://github.com/MediaMath/play-dynamodb).
 
 Working with Play DynamoDB is very similar to working with the Play JSON API.
 
@@ -126,12 +130,14 @@ As you can see, the code is almost the same:
 - Use Play's functional/combinator constructs to map from `Item => DdbResult[D]`
 
 
-Extending validation to process big data with Spark?
-----------------------------------------------------
+Let's take this further!
+----------------------------------------
+
+OK, how does that relate to processing big data pipelines?
 
 There has been a lot of discussion around splitting out Play's JSON API into its own project, as can be seen [in this pull request](https://github.com/playframework/playframework/pull/1904).  It makes a lot of sense because it nicely generalizes the issue of translating data to and from a potentially unsafe wire format in a fully type safe way.  
 
-Development work on the new validation API happens in GitHub at https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms via a slightly refined API in which instead of creating `Reads` you create and combine `Rules`.  MediaMath has submitted patches to extend it to work with CSV/TSV delimited files like so:
+Development work on the new [Validation API](http://jto.github.io/articles/play_new_validation_ap) happens in GitHub at https://github.com/jto/validation.  It already unifies parsing of JSON and HTML forms and recently MediaMath [submitted a patch](https://github.com/jto/validation/pull/14) to extend it to work with CSV/TSV delimited files like so:
 
 ```Scala
 case class Contact(name: String, email: String, birthday: Option[LocalDate])
@@ -142,22 +148,26 @@ val contactReads = From[Delimited] { __ ⇒ (
   (__ \ 2).read(optionR[LocalDate](Rules.equalTo("N/A")))
 )(Contact)}
 
-val csv1 = "Ian Hummel,ian@example.com,1981-07-24"
+val csv1 = "John Doe,joe@example.com,1981-07-24"
 val csv2 = "Jane Doe,jane@example.com,N/A"
 
-contactReads.validate(csv1.split(",")) mustEqual Success(Contact("Ian Hummel", "ian@example.com", Some(new LocalDate(1981, 7, 24))))
+contactReads.validate(csv1.split(",")) mustEqual Success(Contact("John Doe", "joe@example.com", Some(new LocalDate(1981, 7, 24))))
 contactReads.validate(csv2.split(",")) mustEqual Success(Contact("Jane Doe", "jane@example.com", None))
 ```
 
-In the future we'd like to merge our DynamoDB library into it as well, and are actively working on a patch for reading from [JDBC ResultSets](http://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html).  We're excited about the possibilities.
+With the new API you create and combine `Rules` that can bind and validate records from TSV files. Add [Apache Spark](https://spark.apache.org/) to the mix and you get a very compelling development environment for doing fast, reliable and type safe data processing over enormous data sets (which are often stored as lines of JSON or CSV/TSV).
 
-Let's see how this general validation library could be used in a big data pipeline.  We are heavy users of S3 at MediaMath and have enabled [S3 Access Logging](http://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html) on many of the buckets we use for production datasets.  An S3 Access Log looks like this:
+
+Processing S3 Access Logs in Spark
+----------------------------------
+
+We are heavy users of S3 at MediaMath and have enabled [S3 Access Logging](http://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html) on many of the buckets we use for production datasets.  An S3 Access Log looks like this:
 
 ```
 2a520ba2eac7794c5663c17db741f376756214b1bbb423214f979d1ba95bac73 bidder-data-bucket [16/Jul/2014:15:47:42 +0000] 74.121.142.208 arn:aws:iam::000000000000:user/test@mediamath.com XXXXXXXXXXXXXXXX REST.PUT.OBJECT 2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo "PUT /2014-07-16-15/bd.ewr-bidder-x36.1405524542.log.lzo HTTP/1.1" 200 - - 18091170 931 66 "-" "aws-sdk-java/1.7.5 Linux/3.2.0-4-amd64 OpenJDK_64-Bit_Server_VM/20.0-b12/1.6.0_27 com.amazonaws.services.s3.transfer.TransferManager/1.7.5" -
 ```
 
-What if we want to do some data analysis on these access logs, using Spark for instance?
+What if we want to do some data analysis on these access logs, using Spark?
 
 First, let's create our domain object
 
@@ -220,7 +230,7 @@ class S3AccessLogScheme(csvParser: CSVParser = new CSVParser(' ')) extends Schem
 }
 ```
 
-Let's process some data with Spark:
+Now we're ready to start crunching these logs with Spark:
 
 ```scala
 def main(args: Array[String]) = {
@@ -234,14 +244,16 @@ def main(args: Array[String]) = {
 }
 ```
 
-Now we have a data pipeline that can be joined, grouped and aggregated with compile time type checks, code completion for any field access and is resilient to bad records.
+The data pipeline above is fully typed, resilient to bad records and can be joined, grouped and aggregated with compile time type checks and IDE-based code completion.  Much nicer than hardcoding column names all throughout your job!
+
 
 More to come
 ------------
 
-This post just scratched the surface of what's possible with the strong, combinator-based approach to data translation and validation offered by Play.  I really hope the Validation project catches on and can stand on its own 2 feet (without Play).  As we've shown libraries like this could really help making type safe big data pipelines easy.
+This post just scratched the surface of what's possible with the strong, combinator-based approach to data translation and validation offered by the new Play Validation API.  I really hope the project catches on and can stand on its own 2 feet (without from Play).  In the future we'd like to merge our [Play DynamoDB](https://github.com/MediaMath/play-dynamodb) library into it as well.  As we've shown, the enhanced type safety and reusable parsing logic can be used in many ways outside of a traditional web app.
 
-If you'd like more info here are some links:
+
+If you'd like more info, here are some links:
 
 - [An article announcing the new Play validation API](http://jto.github.io/articles/play_new_validation_api)
 - [Play DynamoDB](https://github.com/MediaMath/play-dynamodb)
