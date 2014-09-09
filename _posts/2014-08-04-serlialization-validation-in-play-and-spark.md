@@ -5,9 +5,9 @@ date:   2014-08-07 11:50:13
 categories: scala validation play spark
 ---
 
-Do you think of yourself as a web developer?  Or maybe you're more into building backend, low-latency systems.  Map/reduce much?  As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
+Do you think of yourself as a web developer? Or maybe you’re more into building backend, low-latency systems. Map/reduce much? As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
 
-Recently I had the opportunity to revisit some work we had done to a web-tier API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records.
+Recently I had the opportunity to revisit some work we had done to a web-tier API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records with [Spark](https://spark.apache.org/).
 
 The secret sauce?  [Play's combinator-based approach to data validation](https://www.playframework.com/documentation/2.3.x/ScalaJson).
 
@@ -238,7 +238,7 @@ def main(args: Array[String]) = {
 
   lazy val scheme = new S3AccessLogScheme()
 
-  sc.textFile("s3://mm-prod-cloud-trail-logs/S3AccessLogs/mm-prod-raw-logs-bidder/2014-07-16-16-32-16-EC08CB17F0F10717")
+  sc.textFile("s3://mm-log-files/S3AccessLogs/bidder-data-bucket/2014-07-16-16-32-16-EC08CB17F0F10717")
     .map(scheme.translate) // Type of the stream at this point is Validation[Seq[ValidationError], S3AccessLog]
     .foreach(println)
 }
@@ -250,13 +250,12 @@ The data pipeline above is fully typed, resilient to bad records and can be join
 More to come
 ------------
 
-This post just scratched the surface of what's possible with the strong, combinator-based approach to data translation and validation offered by the new Play Validation API.  I really hope the project catches on and can stand on its own 2 feet (without from Play).  In the future we'd like to merge our [Play DynamoDB](https://github.com/MediaMath/play-dynamodb) library into it as well.  As we've shown, the enhanced type safety and reusable parsing logic can be used in many ways outside of a traditional web app.
+This post just scratched the surface of what's possible with the strong, combinator-based approach to data translation and validation offered by the new Play Validation API.  I really hope the project catches on and can stand on its own 2 feet (without Play).  In the future we'd like to merge our [Play DynamoDB](https://github.com/MediaMath/play-dynamodb) library into it as well.  As we've shown, the enhanced type safety and reusable parsing logic can be used in many ways outside of a traditional web app.
 
-
-If you'd like more info, here are some links:
+If you'd like more info, check out these links:
 
 - [An article announcing the new Play validation API](http://jto.github.io/articles/play_new_validation_api)
 - [Play DynamoDB](https://github.com/MediaMath/play-dynamodb)
 - [The new Play validation API project](https://github.com/jto/validation)
 
-Oh, and if you like working with Big Data and AWS?  Checkout the [MediaMath careers page](http://www.mediamath.com/about/careers/)!
+And if you want to learn more about how we use Spark, AWS and Play to reimagine marketing here at MediaMath, send me a note at @themodernlife or get in touch via @mediamath.
