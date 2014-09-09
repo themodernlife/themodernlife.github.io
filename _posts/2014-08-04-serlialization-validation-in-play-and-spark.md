@@ -5,7 +5,7 @@ date:   2014-08-07 11:50:13
 categories: scala validation play spark
 ---
 
-Do you think of yourself as a web developer? Or maybe you’re more into building backend, low-latency systems. Map/reduce much? As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other domains to the problem at hand.
+Do you think of yourself as a web developer? Or maybe you’re more into building backend, low-latency systems. Map/reduce much? As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other layers in the tech stack to the problem at hand.
 
 Recently I had the opportunity to revisit some work we had done to a web-tier API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records with [Spark](https://spark.apache.org/).
 
