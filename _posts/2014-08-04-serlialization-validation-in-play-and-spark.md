@@ -1,13 +1,9 @@
 ---
 layout: post
-title:  "Using web tier validation to enable strongly typed, big data pipelines"
+title:  "Data validation with Play and Spark?  How web-tier validation enables strongly typed, big data pipelines"
 date:   2014-08-07 11:50:13
 categories: scala validation play spark
 ---
-
-
-
-Headline: Data validation with Play and Spark?  How web-tier validation enables strongly typed, big data pipelines.
 
 The other day I was talking with a colleague about data validation and the [Play web framework](http://www.playframework.com/) came up.  Play has a nice API for validating HTML form and JSON submissions.  This works great when you're processing small amounts of data from the web-tier of your application.  But could that same tech benefit a Big Data team working on a backend powered by Hadoop or [Spark](https://spark.apache.org/)?
 
