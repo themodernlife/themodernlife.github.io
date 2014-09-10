@@ -5,11 +5,14 @@ date:   2014-08-07 11:50:13
 categories: scala validation play spark
 ---
 
-Do you think of yourself as a web developer? Or maybe you’re more into building backend, low-latency systems. Map/reduce much? As engineers, we often overspecialize and lose out on opportunities to apply creative solutions from other layers in the tech stack to the problem at hand.
 
-Recently I had the opportunity to revisit some work we had done to a web-tier API using the [Play web framework](http://www.playframework.com/) and apply it to solving the problem of creating type safe data pipelines that are resilient in the face of invalid records with [Spark](https://spark.apache.org/).
 
-The secret sauce?  [Play's combinator-based approach to data validation](https://www.playframework.com/documentation/2.3.x/ScalaJson).
+Headline: Data validation with Play and Spark?  How web-tier validation enables strongly typed, big data pipelines.
+
+The other day I was talking with a colleague about data validation and the [Play web framework](http://www.playframework.com/) came up.  Play has a nice API for validating HTML form and JSON submissions.  This works great when you're processing small amounts of data from the web-tier of your application.  But could that same tech benefit a Big Data team working on a backend powered by Hadoop or [Spark](https://spark.apache.org/)?
+
+We decided to find out and the results were encouraging.  The secret sauce?  [Play's combinator-based approach to data validation](https://www.playframework.com/documentation/2.3.x/ScalaJson).
+
 
 
 Whether your data is big or small, garbage in is garbage out
