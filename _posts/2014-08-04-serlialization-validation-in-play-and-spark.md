@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Data validation with Play and Spark?  How web-tier validation enables strongly typed, big data pipelines"
+title:  "Strange bedfellows: how a web-tier validation framework enables strongly typed, big data pipelines"
 date:   2014-08-07 11:50:13
 categories: scala validation play spark
 ---
