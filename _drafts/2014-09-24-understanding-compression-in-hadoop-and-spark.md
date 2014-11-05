@@ -5,6 +5,10 @@ date:   2014-09-24 11:50:13
 categories: hadoop spark compression
 ---
 
+
+
+
+
 Usually you'll see this:
 
 ```xml
