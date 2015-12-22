@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  Running scalding jobs on Apache Flink
+title:  Running Scalding jobs on Apache Flink
 date:   2015-12-20 08:15:13
 categories: scala hadoop hdfs sclading flink streaming realtime
 ---
 
-My previous post showed a very simple Scalding workflow.  Apache Flink is a real time streaming framework that's very promising.  It also supports running Cascading workflows with very little modification.
+My previous post showed a very simple [Scalding](https://github.com/twitter/scalding) workflow. [Apache Flink](http://flink.apache.org/) is a real time streaming framework that's very promising.  It also supports running Cascading workflows with very little modification.
 
 Surely there must be *some* way to run a Scalding job on top of Flink?  Turns out... YES!
 
@@ -23,7 +23,7 @@ Here are the high-level things we need to solve for
 
 ## Scalding job
 
-Let's start with a very simple Scalding job.  You can download https://github.com/themodernlife/simple-scalding-example for some inspiration.
+Let's start with a very simple Scalding job.  You can download <https://github.com/themodernlife/simple-scalding-example> for some inspiration.
 
 ```scala
 package net.themodernlife
@@ -70,23 +70,23 @@ libraryDependencies ++= Seq(
 
 We need to update Scalding
 
-- Apply https://github.com/twitter/scalding/pull/1446
-- Apply/hack https://github.com/twitter/scalding/pull/1220
+- Apply <https://github.com/twitter/scalding/pull/1446>
+- Apply/hack <https://github.com/twitter/scalding/pull/1220>
 - Hack `Build.scala` to ignore some submodules
 
-According to http://www.cascading.org/2015/09/22/announcing-cascading-on-apache-flink/ 
+According to <http://www.cascading.org/2015/09/22/announcing-cascading-on-apache-flink/>, 
 `cascading-flink` only works with the Cascading 3 API.  Scalding hasn't been updated yet, 
 but there is a PR which updates most of the code to work with Cascading 3's newer APIs
-at https://github.com/twitter/scalding/pull/1446.
+at <https://github.com/twitter/scalding/pull/1446>.
 
 Unfortunately, this PR requires even more changes to upstream projects for modules such as
 `scalding-parquet` to compile.  I don't use those modules, so I'm just going to hack the Scalding build so it doesn't compile those modules.
 
 Finally, when running Cascading we need to provide a "fabric" selection.  To date, the only options have been Hadoop and Local mode, but with execution frameworks like Tez on the horizon there has been some movement to make this even more configurable.
 
-The PR at https://github.com/twitter/scalding/pull/1220 adds Tez as a backend, so we'll just extend that PR to add Flink too.
+The PR at <https://github.com/twitter/scalding/pull/1220> adds Tez as a backend, so we'll just extend that PR to add Flink too.
 
-My fork of Scalding at https://github.com/themodernlife/scalding/tree/scalding-on-flink has a branch `scalding-on-flink` you can download and build.  You can see the changes necessary by checking out https://github.com/twitter/scalding/compare/develop...themodernlife:scalding-on-flink.
+My fork of Scalding at <https://github.com/themodernlife/scalding/tree/scalding-on-flink> has a branch `scalding-on-flink` you can download and build.  You can see the changes necessary by checking out <https://github.com/twitter/scalding/compare/develop...themodernlife:scalding-on-flink>.
 
 NOTE that `Build.scala` also has an update for the Chill bug I'll be describing in a bit...
 
@@ -102,20 +102,20 @@ This will install all the Scalding modules with version `0.15.1-SNAPSHOT` in you
 
 So assuming you've applied the patches above and commented out any unnecessary modules, you should be able to *try* and run things (note that let's assume you're using `0.7.1` version of `Chill` for the moment).
 
-Download Flink from http://flink.apache.org/downloads.html.  I'm using `0.10.1` for Hadoop `2.6.0` and Scala `2.11`.  After downloading and unpacking the tar file at http://www.apache.org/dyn/closer.lua/flink/flink-0.10.1/flink-0.10.1-bin-hadoop26-scala_2.11.tgz we can kick off the Flink daemon.
+Download Flink from <http://flink.apache.org/downloads.html>.  I'm using `0.10.1` for Hadoop `2.6.0` and Scala `2.11`.  After downloading and unpacking the tar file at <http://www.apache.org/dyn/closer.lua/flink/flink-0.10.1/flink-0.10.1-bin-hadoop26-scala_2.11.tgz> we can kick off the Flink daemon.
 
 ```shell
 $ ./start-local.sh 
 Starting jobmanager daemon on host mm-mac-3270.local.
 ```
 
-Now we can load up the dashboard at http://localhost:8081/#/overview to ensure it's actually running.
+Now we can load up the dashboard at <http://localhost:8081/#/overview> to ensure it's actually running.
 
-![Flink running](images/flink-no-job.png)
+![Flink running](/images/flink-no-job.png)
 
 To submit a Scalding job to Flink, we need to create a fat jar and update our dependencies a little bit.  First, we'll need to get a copy of the `cascading-flink` jar and add it to the `lib` directory in our `sbt` project.  `cascading-flink` is not currently published to any maven repos that I'm aware of.
 
-You can build it yourself by checking out https://github.com/dataArtisans/cascading-flink and running
+You can build it yourself by checking out <https://github.com/dataArtisans/cascading-flink> and running
 
 ```shell
 $ mvn clean package -DskipTests
@@ -242,7 +242,7 @@ Now we're using the classloader for the current thread, which in this case *can*
 
 So what do we need to do?  For starters we need a patched version of Chill.  But we also need to *remove* Chill classes from the Flink dist!
 
-Ok, so grab the Chill branch here https://github.com/themodernlife/chill/tree/scalding-on-flink and then do
+Ok, so grab the Chill branch here <https://github.com/themodernlife/chill/tree/scalding-on-flink> and then do
 
 ```shell
 $ sbt publish-local
@@ -328,8 +328,8 @@ $ /tmp/flink-0.10.1/bin/flink run -c com.twitter.scalding.Tool target/scala-2.11
 
 ```
 
-You can find the example project at https://github.com/themodernlife/simple-scalding-example/tree/scalding-on-flink
+You can find the example project at <https://github.com/themodernlife/simple-scalding-example/tree/scalding-on-flink>
 
 Screenshot:
 
-![Flink scalding job](images/flink-job.png)
+![Flink scalding job](/images/flink-job.png)
