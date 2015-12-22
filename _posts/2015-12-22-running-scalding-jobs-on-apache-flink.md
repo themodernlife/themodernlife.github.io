@@ -328,6 +328,8 @@ $ /tmp/flink-0.10.1/bin/flink run -c com.twitter.scalding.Tool target/scala-2.11
 
 ```
 
+You can find the example project at https://github.com/themodernlife/simple-scalding-example/tree/scalding-on-flink
+
 Screenshot:
 
 ![Flink scalding job](images/flink-job.png)
