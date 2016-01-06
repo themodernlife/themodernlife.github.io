@@ -5,11 +5,11 @@ date:   2016-01-06 08:15:13
 categories: scala hadoop hdfs sclading flink streaming realtime emr aws
 ---
 
-I love really [Amazon EMR](https://aws.amazon.com/elasticmapreduce/).  Over the years it's really grown from being "Hadoop on-demand" to a full-fledged cluster management system for running OSS big-data apps (Hadoop MR of course, but also Spark, Hue, Hive, Pig, Oozie and more).
+I love really [Amazon EMR](https://aws.amazon.com/elasticmapreduce/).  Over the years it's grown from being "Hadoop on-demand" to a full-fledged cluster management system for running OSS big-data apps (Hadoop MR of course, but also Spark, Hue, Hive, Pig, Oozie and more).
 
 While Hadoop out of the box supports reading from S3, EMR has a proprietary implementation called EMRFS that has some nice features.  For those reasons, it's really the best Hadoop cluster to use if you're storing your data in S3.
 
-Lately I've been experimenting a lot with [Apache Flink](http://flink.apache.org/) to replace MR as the excution fabric.  At my previous company we had many, many jobs written in Scalding.  Flink can execute Scalding jobs with some very simple modifications which was a great way to move our jobs from MR to a more memory-centric data processing model.
+Lately I've been experimenting a lot with [Apache Flink](http://flink.apache.org/) to replace MR as the excution fabric.  At work, we have many, many jobs written in Scalding.  Flink can execute Scalding jobs with some very simple modifications which was a great way to move our jobs from MR to a more memory-centric data processing model.
 
 However, we really wanted to run our jobs on EMR using Flink.  Flink is not an option for EMR (yet) but can we still get our jobs to run?  Let's see!
 
