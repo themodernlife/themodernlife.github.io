@@ -161,7 +161,7 @@ Ok, now let's run our MR example!  We're just going to tell Hadoop to read direc
 
 You can see that the job started and was run by YARN.
 
-![images/mr-wordcount.png]
+![MR wordcount](/images/mr-wordcount.png)
 
 Let's have a look at our data:
 
@@ -609,6 +609,8 @@ Shutting down YARN cluster
 ```
 
 It worked!
+
+![Flink works on EMR](/images/flink-wordcount-emr.png)
 
 ## Conclusion
 
